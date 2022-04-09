@@ -124,52 +124,6 @@ namespace PhotoRenamerNet
             }
         }
 
-        //private void RenameFiles(string path)
-        //{
-        //    LabelCurrent.Invoke((MethodInvoker)delegate
-        //    {
-        //        LabelCurrent.Text = string.Empty;
-        //    });
-        //    LabelPath.Invoke((MethodInvoker)delegate
-        //    {
-        //        LabelPath.Text = path;
-        //    });
-        //    ButtonStart.Invoke((MethodInvoker)delegate
-        //    {
-        //        ButtonStart.Enabled = false;
-        //    });
-
-        //    try
-        //    {
-        //        string[] filePaths = System.IO.Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly);
-        //        ProgressBar.Invoke((MethodInvoker)delegate
-        //        {
-        //            ProgressBar.Maximum = filePaths.Length;
-        //            ProgressBar.Visible = true;
-        //        });
-
-        //        //foreach (string filePath in filePaths)
-        //        for(int i = 1; i <= filePaths.Length; i++)
-        //        {
-        //            string filePath = filePaths[i - 1];
-        //            LabelCurrent.Invoke((MethodInvoker)delegate
-        //            {
-        //                LabelCurrent.Text = new FileInfo(filePath).Name;
-        //            });
-        //            ProgressBar.Invoke((MethodInvoker)delegate
-        //            {
-        //                ProgressBar.Value = i;
-        //                ProgressBar.Text = $@"{i}/{filePaths.Length}";
-        //            });
-        //            RenameFile(filePath);
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show(ex.Message, @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //    }
-        //}
-
         private void ButtonPath_Click(object sender, EventArgs e)
         {
             using (var folderBrowserDialog = new FolderBrowserDialog())

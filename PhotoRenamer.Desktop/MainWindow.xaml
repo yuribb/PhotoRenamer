@@ -1,0 +1,14 @@
+﻿<Window x:Class="PhotoRenamer.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PhotoRenamer.Desktop"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" AllowsTransparency="False">
+    <Grid>
+        <TextBox Margin="10,10,97,405"></TextBox>
+        <Button Name="BtPath" Content="..." Margin="708,10,10,405" Click="BtPath_Click"></Button>
+        <Button Name="BtRename" Content="Rename" Margin="708,401,10,10" Click="BtRename_Click"></Button>
+    </Grid>
+</Window>

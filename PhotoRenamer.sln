@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30021.99
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhotoRenamerNet", "PhotoRenamerNet\PhotoRenamerNet.csproj", "{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhotoRenamer.Desktop", "PhotoRenamer.Desktop\PhotoRenamer.Desktop.csproj", "{DE55A4D9-62A3-468A-AC32-DBE003F50F1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhotoRenamer.Core", "PhotoRenamer.Core\PhotoRenamer.Core.csproj", "{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE55A4D9-62A3-468A-AC32-DBE003F50F1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE55A4D9-62A3-468A-AC32-DBE003F50F1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE55A4D9-62A3-468A-AC32-DBE003F50F1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE55A4D9-62A3-468A-AC32-DBE003F50F1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
