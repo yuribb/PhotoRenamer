@@ -13,7 +13,13 @@ namespace PhotoRenamer.Core
 
         public async Task RenameAllFiles(string path)
         {
+            var files = Directory.GetFiles(path);
 
+            foreach (var file in files)
+            {
+                var fileInfo = new FileInfo(file);
+                GiveNewPath(fileInfo, fileInfo.CreationTime);
+            }
         }
 
         private string GiveNewPath(FileSystemInfo fi, DateTime date)

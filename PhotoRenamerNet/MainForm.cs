@@ -1,9 +1,17 @@
-﻿using System;
+﻿using MetadataExtractor;
+using MetadataExtractor.Formats.Exif;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using GroupDocs.Metadata;
+using Directory = System.IO.Directory;
 
 namespace PhotoRenamerNet
 {
@@ -22,7 +30,7 @@ namespace PhotoRenamerNet
             {
                 if (Directory.Exists(TextBoxPath.Text))
                 {
-                    RenameAllAsync(TextBoxPath.Text).RunSynchronously();
+                    RenameAllAsync(TextBoxPath.Text).ConfigureAwait(true);
                 }
                 else
                 {
@@ -38,9 +46,9 @@ namespace PhotoRenamerNet
             {
                 var subdirectories = Directory.GetDirectories(path);
 
-                foreach (var subdirectory in subdirectories)
+                foreach (var subDirectory in subdirectories)
                 {
-                    await RenameFilesAsync(subdirectory);
+                    await RenameFilesAsync(subDirectory);
                 }
 
                 LabelPath.Invoke((MethodInvoker)delegate
@@ -155,11 +163,19 @@ namespace PhotoRenamerNet
             try
             {
                 var fi = new FileInfo(filePath);
-                var filo = fi.Name.ToLower();
-                DateTime? dateTime;
-                if (filo.StartsWith("201") || filo.StartsWith("200") || filo.StartsWith("202"))
+
+                if (fi.Name.Replace(fi.Extension, string.Empty).Contains("Copy"))
                 {
-                    if (filo.Contains("_") && filo.Length <= 19)
+                    File.Delete(filePath);
+                    return;
+                }
+
+                var fileName = fi.Name.ToLower();
+                DateTime? dateTime;
+
+                if (fileName.StartsWith("201") || fileName.StartsWith("200") || fileName.StartsWith("202"))
+                {
+                    if (fileName.Contains("_") && fileName.Length <= 19)
                     {
                         var year = int.Parse(fi.Name.Substring(0, 4));
                         var month = int.Parse(fi.Name.Substring(4, 2));
@@ -172,7 +188,7 @@ namespace PhotoRenamerNet
                     else
                         return;
                 }
-                else if ((filo.StartsWith("img_20") || filo.StartsWith("vid_20")) && filo.Length > 17)
+                else if ((fileName.StartsWith("img_20") || fileName.StartsWith("vid_20")) && fileName.Length > 17)
                 {
                     var year = int.Parse(fi.Name.Substring(4, 4));
                     var month = int.Parse(fi.Name.Substring(8, 2));
@@ -182,7 +198,7 @@ namespace PhotoRenamerNet
                     var second = int.Parse(fi.Name.Substring(17, 2));
                     dateTime = new DateTime(year, month, day, hour, minute, second);
                 }
-                else if (filo.StartsWith("wp_20") && filo.Length > 20)
+                else if (fileName.StartsWith("wp_20") && fileName.Length > 20)
                 {
                     var year = int.Parse(fi.Name.Substring(3, 4));
                     var month = int.Parse(fi.Name.Substring(7, 2));
@@ -222,6 +238,21 @@ namespace PhotoRenamerNet
                 return dateTime;
             }
 
+            dateTime = GetMsInfoDateTime(fi);
+
+            if (dateTime.HasValue)
+            {
+                return dateTime;
+            }
+
+            dateTime = GetDateTakenFromImage(fi.FullName);
+
+            return dateTime;
+        }
+
+        private DateTime? GetMsInfoDateTime(FileSystemInfo fi)
+        {
+            DateTime? dateTime = null;
             var mf = new MediaInfoDotNet.MediaFile(fi.FullName);
 
             if (mf.Image.Any())
@@ -237,6 +268,16 @@ namespace PhotoRenamerNet
             {
                 return dateTime;
             }
+            return null;
+        }
+
+        public static DateTime? GetDateTakenFromImage(string path)
+        {
+            using (var metadata = new Metadata(path))
+            {
+
+            }
+
             return null;
         }
 
@@ -256,11 +297,16 @@ namespace PhotoRenamerNet
 
             foreach (var meta in metadata)
             {
-                foreach (var tag in meta.Tags)
+                foreach (var tag in meta.Tags) 
                 {
-                    if (tag.Description == null || !tag.Name.ToLower().Contains("date") || tag.Description.Length < 19 || tag.Description.Contains("+")) continue;
+                    if (tag.Description == null || !tag.Name.ToLower().Contains("date") || !tag.Name.Contains("Date") || tag.Description.Length < 19 || tag.Description.Contains("+")) continue;
                     if (DateTime.TryParse(tag.Description, out var dateTime))
                     {
+                        if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
+                            dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
+                        {
+                            continue;
+                        }
                         dates.Add(dateTime);
                     }
                     else if (tag.Description.Contains(":"))
@@ -274,6 +320,11 @@ namespace PhotoRenamerNet
                             var minute = int.Parse(tag.Description.Substring(14, 2));
                             var second = int.Parse(tag.Description.Substring(17, 2));
                             dateTime = new DateTime(year, month, day, hour, minute, second);
+                            if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
+                                dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
+                            {
+                                continue;
+                            }
                             dates.Add(dateTime);
                         }
                         catch
@@ -284,11 +335,8 @@ namespace PhotoRenamerNet
                 }
             }
 
-            if (!dates.Any())
-            {
-                return null;
-            }
-            dates = dates.Where(d => d > MinDate).ToList();
+            dates = dates.ToList();
+
             if (!dates.Any())
             {
                 return null;
