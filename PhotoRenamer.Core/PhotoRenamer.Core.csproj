@@ -10,6 +10,7 @@
     <PackageReference Include="GroupDocs.Metadata" Version="23.3.0" />
     <PackageReference Include="LibVLCSharp" Version="3.7.0" />
     <PackageReference Include="MetadataExtractor" Version="2.7.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
   </ItemGroup>
   
 
