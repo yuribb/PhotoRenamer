@@ -1,4 +1,5 @@
 using GroupDocs.Metadata;
+using LibVLCSharp.Shared;
 using Directory = System.IO.Directory;
 
 namespace PhotoRenamer.Core;
@@ -58,7 +59,7 @@ public class RenameProcessor
 
         if (fileName.StartsWith("201") || fileName.StartsWith("200") || fileName.StartsWith("202"))
         {
-            if (fileName.Contains("_") && fileName.Length <= 19)
+            if (fileName.Contains("_") && fileName.Length <= 26)
             {
                 var year = int.Parse(fi.Name.Substring(0, 4));
                 var month = int.Parse(fi.Name.Substring(4, 2));
@@ -125,6 +126,19 @@ public class RenameProcessor
 
         return dateTime;
     }
+
+    // private DateTime? GetMovDateTime(FileSystemInfo fi)
+    // {
+    //     var vlc = new LibVLC();
+    //
+    //     Media m = new(vlc, new Uri(fi.FullName));
+    //     
+    //     // async method, using awaiter here for simplicity
+    //     m.Parse().GetAwaiter().GetResult();
+    //
+    //     // video duration in ms
+    //     Console.WriteLine(m.SubItems.);
+    // }
 
     // private DateTime? GetMsInfoDateTime(FileSystemInfo fi)
     // {
