@@ -1,12 +1,13 @@
-using GroupDocs.Metadata;
-using LibVLCSharp.Shared;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using Directory = System.IO.Directory;
 
 namespace PhotoRenamer.Core;
 
 public class RenameProcessor
 {
+    private const string MetadataDateTimeOffsetFormat = "ddd MMM dd HH:mm:ss zzz yyyy";
+
     private static readonly DateTime MinDate = new(2006, 1, 1, 1, 1, 1, DateTimeKind.Local);
 
     private readonly ILogger _logger;
@@ -207,13 +208,39 @@ public class RenameProcessor
 
         IList<DateTime> dates = new List<DateTime>();
 
-        foreach (var meta in metadata)
+        foreach (var tag in metadata.SelectMany(meta => meta.Tags).Where(tag => tag.Name.Contains("date", StringComparison.OrdinalIgnoreCase)))
         {
-            foreach (var tag in meta.Tags)
+            if (tag.Description == null || tag.Description.Length < 19) continue;
+
+            if (DateTimeOffset.TryParseExact(tag.Description, MetadataDateTimeOffsetFormat, DateTimeFormatInfo.CurrentInfo, DateTimeStyles.None, out var dateTimeOffset))
             {
-                if (tag.Description == null || !tag.Name.ToLower().Contains("date") || !tag.Name.Contains("Date") || tag.Description.Length < 19 || tag.Description.Contains("+")) continue;
-                if (DateTime.TryParse(tag.Description, out var dateTime))
+                if (dateTimeOffset.Month == 1 && dateTimeOffset.Day == 1 && dateTimeOffset.Hour == 0 && dateTimeOffset.Minute == 0 &&
+                    dateTimeOffset.Second == 0 && dateTimeOffset.Millisecond == 0 || dates.Contains(dateTimeOffset.LocalDateTime))
                 {
+                    continue;
+                }
+                dates.Add(dateTimeOffset.LocalDateTime);
+            }
+            else if (DateTime.TryParse(tag.Description, out var dateTime))
+            {
+                if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
+                    dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
+                {
+                    continue;
+                }
+                dates.Add(dateTime);
+            }
+            else if (tag.Description.Contains(':'))
+            {
+                try
+                {
+                    var year = int.Parse(tag.Description.Substring(0, 4));
+                    var month = int.Parse(tag.Description.Substring(5, 2));
+                    var day = int.Parse(tag.Description.Substring(8, 2));
+                    var hour = int.Parse(tag.Description.Substring(11, 2));
+                    var minute = int.Parse(tag.Description.Substring(14, 2));
+                    var second = int.Parse(tag.Description.Substring(17, 2));
+                    dateTime = new DateTime(year, month, day, hour, minute, second);
                     if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
                         dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
                     {
@@ -221,28 +248,9 @@ public class RenameProcessor
                     }
                     dates.Add(dateTime);
                 }
-                else if (tag.Description.Contains(":"))
+                catch
                 {
-                    try
-                    {
-                        var year = int.Parse(tag.Description.Substring(0, 4));
-                        var month = int.Parse(tag.Description.Substring(5, 2));
-                        var day = int.Parse(tag.Description.Substring(8, 2));
-                        var hour = int.Parse(tag.Description.Substring(11, 2));
-                        var minute = int.Parse(tag.Description.Substring(14, 2));
-                        var second = int.Parse(tag.Description.Substring(17, 2));
-                        dateTime = new DateTime(year, month, day, hour, minute, second);
-                        if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
-                            dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
-                        {
-                            continue;
-                        }
-                        dates.Add(dateTime);
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
+                    // ignored
                 }
             }
         }

@@ -6,7 +6,11 @@ namespace PhotoRenamer.Core.Tests;
 public class RenameProcessorTests
 {
     private const string OriginalImgFileName = "IMG_20230528_174703.jpg";
+    private const string OriginalMetadataFileName = "IMG_for_metadata.jpg";
+    private const string OriginalMovFileName = "IMG_2610.mov";
     private const string DesiredImgFileName = "2023-05-28 17-47-03.jpg";
+    private const string DesiredMetadataFileName = "2023-08-01 03-11-32.jpg";
+    private const string DesiredMovFileName = "2023-05-15 20-37-45.mov";
 
     /// <summary>
     /// Папка с оригинальным изображением, которая студия копирует при билде.
@@ -23,9 +27,9 @@ public class RenameProcessorTests
     }
 
     [Fact]
-    public async Task RenameImgSuccess()
+    public async Task RenameImgByNameSuccess()
     {
-        var (fileDir, filePath) = CopyImage();
+        var (fileDir, filePath) = CopyImage(OriginalImgFileName);
 
         var processor = new RenameProcessor(_logger);
         await processor.RenameAllAsync(fileDir);
@@ -41,9 +45,9 @@ public class RenameProcessorTests
     }
 
     [Fact]
-    public async Task RenameImgDuplicateSuccess()
+    public async Task RenameImgByNameDuplicateSuccess()
     {
-        var (fileDir, filePath) = CopyImage();
+        var (fileDir, filePath) = CopyImage(OriginalImgFileName);
 
         var processor = new RenameProcessor(_logger);
         await processor.RenameAllAsync(fileDir);
@@ -67,19 +71,49 @@ public class RenameProcessorTests
         Directory.Delete(fileDir, true);
     }
 
+    [Fact]
+    public async Task RenameImgByMetadataSuccess()
+    {
+        var (fileDir, filePath) = CopyImage(OriginalMetadataFileName);
+
+        var processor = new RenameProcessor(_logger);
+        await processor.RenameAllAsync(fileDir);
+
+        Assert.False(File.Exists(filePath));
+        var newFilePath = Path.Combine(fileDir, DesiredMetadataFileName);
+        Assert.True(File.Exists(newFilePath));
+
+        Cleanup(fileDir);
+    }
+
+    [Fact]
+    public async Task RenameMovByMetadataSuccess()
+    {
+        var (fileDir, filePath) = CopyImage(OriginalMovFileName);
+
+        var processor = new RenameProcessor(_logger);
+        await processor.RenameAllAsync(fileDir);
+
+        Assert.False(File.Exists(filePath));
+        var newFilePath = Path.Combine(fileDir, DesiredMovFileName);
+        Assert.True(File.Exists(newFilePath));
+
+        Cleanup(fileDir);
+    }
+
     /// <summary>
     /// Получить копию папки с оригинальным изображением.
     /// Так как тесты конфликтуют между собой, для каждого теста создаём свою подпапку.
     /// </summary>
     /// <returns>(DirectoryPath, FileName)</returns>
-    private (string, string) CopyImage()
+    private (string, string) CopyImage(string imageName)
     {
-        var originalFilePath = Path.Combine(OriginalImgPath, OriginalImgFileName);
+        var originalFilePath = Path.Combine(OriginalImgPath, imageName);
         Assert.True(File.Exists(originalFilePath));
 
         var tempDirectory = Directory.CreateTempSubdirectory().FullName;
 
-        var newFilePath = Path.Combine(tempDirectory, OriginalImgFileName);
+        var newFilePath = Path.Combine(tempDirectory, imageName);
         File.Copy(originalFilePath, newFilePath);
 
         _logger.LogInformation("Create temp directory {Dir}", tempDirectory);
