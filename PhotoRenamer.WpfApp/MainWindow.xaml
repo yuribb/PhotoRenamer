@@ -31,11 +31,9 @@
             <Button Grid.Column="1" Margin="10,5" Content="..." Command="{Binding ShowFolderBrowserDialogCommand}"></Button>
         </Grid>
 
-        <StackPanel Grid.Row="2">
+        <DockPanel Grid.Row="2">
             <DataGrid Style="{StaticResource MaterialDesignDataGrid}"
-                      ItemsSource="{Binding EventLog, UpdateSourceTrigger=PropertyChanged}"
-                      ScrollViewer.CanContentScroll="True"
-                      ScrollViewer.VerticalScrollBarVisibility="Auto" 
+                      ItemsSource="{Binding EventLog, UpdateSourceTrigger=PropertyChanged}" VerticalScrollBarVisibility="Auto"
                       AutoGenerateColumns="False" CanUserReorderColumns="False" CanUserSortColumns="False"
                       IsReadOnly="True">
                 <DataGrid.Columns>
@@ -54,7 +52,7 @@
                     </Style>
                 </DataGrid.RowStyle>
             </DataGrid>
-        </StackPanel>
+        </DockPanel>
 
         <Grid Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
             <Grid.ColumnDefinitions>
@@ -62,7 +60,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Margin="10,5">
-                <ProgressBar Value="{Binding CurrentProgress, Mode=OneWay}"/>
+                <ProgressBar Value="{Binding CurrentProgress, Mode=OneWay}" Maximum="{Binding TotalFilesCount, Mode=OneWay}"/>
                 <TextBlock Text="{Binding CurrentProgressDescription, UpdateSourceTrigger=PropertyChanged}"></TextBlock>
             </StackPanel>
             <Button Grid.Column="1" Margin="10,5" Content="Start" 

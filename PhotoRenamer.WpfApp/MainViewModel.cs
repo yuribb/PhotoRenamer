@@ -1,14 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using Ookii.Dialogs.Wpf;
+using PhotoRenamer.Core;
 using PhotoRenamer.WpfApp.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace PhotoRenamer.WpfApp;
 
@@ -18,16 +18,20 @@ public class MainViewModel : INotifyPropertyChanged
 
     private readonly ILogger _logger;
 
+    readonly Dispatcher _dispatcher;
+
     public MainViewModel()
     {
-        using var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug());
+        _dispatcher = Dispatcher.CurrentDispatcher;
+
+        using var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Debug).AddDebug());
         _logger = loggerFactory.CreateLogger<MainViewModel>();
 
         _logger.LogInformation("Start init MainViewModel");
 
         // Commands 
         ShowFolderBrowserDialogCommand = new RelayCommand(ShowFolderBrowserDialog);
-        StartProcessingCommand = new AsyncRelayCommand(StartProcessing);
+        StartProcessingCommand = new AsyncRelayCommand(StartProcessingAsync);
 
         // Fields
         if (WorkingDirectory != string.Empty)
@@ -39,14 +43,13 @@ public class MainViewModel : INotifyPropertyChanged
             WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
                 ?? "/Users/iuriibanshchikov/Pictures/";
         }
-
-        EventLog.Add(new EventLogEntry("Gello"));
     }
 
     private string? _workingDirectory = string.Empty;
     private int _currentProgress;
     private string? _currentProgressDescription;
     private ObservableCollection<EventLogEntry> _eventLog = new();
+    private int _totalFilesCount;
 
     public string? WorkingDirectory
     {
@@ -73,6 +76,17 @@ public class MainViewModel : INotifyPropertyChanged
             _currentProgress = value;
             OnPropertyChanged(nameof(CurrentProgress));
             _logger.LogDebug("CurrentStatus={CurrentStatus}", value);
+        }
+    }
+
+    public int TotalFilesCount
+    {
+        get => _totalFilesCount;
+        set
+        {
+            _totalFilesCount = value;
+            OnPropertyChanged(nameof(TotalFilesCount));
+            _logger.LogDebug("TotalFilesCount={TotalFilesCount}", value);
         }
     }
 
@@ -125,13 +139,65 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task StartProcessing()
+    private async Task StartProcessingAsync()
     {
         _logger.LogDebug("StartProcessing command");
 
-        EventLog.Add(new EventLogEntry("Start", EventLogEntryStatus.Success));
+        if (string.IsNullOrWhiteSpace(WorkingDirectory))
+        {
+            _logger.LogError("WorkingDirectory is null");
+            return;
+        }
 
-        CurrentProgress += 10;
+        var photoRenamer = new RenameProcessor(_logger);
+        try
+        {
+            TotalFilesCount = await photoRenamer.CountFilesAsync(WorkingDirectory, recursive: false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when counting files");
+            EventLog.Add(new EventLogEntry("Error when counting files", EventLogEntryStatus.Error));
+            return;
+        }
+
+        EventLog.Add(new EventLogEntry($"Start processing {TotalFilesCount} files"));
+
+        await Task.Run(() => Process(photoRenamer, WorkingDirectory));
+
+        _logger.LogDebug("Finish StartProcessing command");
+    }
+
+    private async Task Process(RenameProcessor photoRenamer, string directory)
+    {
+        try
+        {
+            int i = 0;
+            await photoRenamer.ProcessRenameFilesAsync(directory, recursive: false, onRenameSuccess: async (fileName, result) =>
+                   {
+                       _dispatcher.Invoke(() =>
+               {
+                   CurrentProgress++;
+                   CurrentProgressDescription = $"{++i}/{TotalFilesCount} - {fileName}";
+                   if (result.Success)
+                   {
+                       if (result is StringOperationResult sResult)
+                           EventLog.Add(new EventLogEntry(sResult.Result!, EventLogEntryStatus.Success));
+                       else
+                           EventLog.Add(new EventLogEntry(fileName, EventLogEntryStatus.Success));
+                   }
+                   else
+                   {
+                       EventLog.Add(new EventLogEntry(result.FailureMessage ?? result.Exception?.Message ?? "???", EventLogEntryStatus.Error));
+                   }
+               });
+                   });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when processing files");
+            EventLog.Add(new EventLogEntry("Error when processing files", EventLogEntryStatus.Error));
+        }
     }
 
     #endregion
@@ -140,4 +206,5 @@ public class MainViewModel : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
 }
