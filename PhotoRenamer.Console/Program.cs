@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using PhotoRenamer.Core;
 
-using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().AddDebug());
 var logger = loggerFactory.CreateLogger<Program>();
 
 var path = string.Empty;

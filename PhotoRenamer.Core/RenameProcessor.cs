@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using System.IO;
 using Directory = System.IO.Directory;
 
 namespace PhotoRenamer.Core;
@@ -7,6 +8,8 @@ namespace PhotoRenamer.Core;
 public class RenameProcessor
 {
     private const string MetadataDateTimeOffsetFormat = "ddd MMM dd HH:mm:ss zzz yyyy";
+
+    private const string YandexDateTimeFormat = "yyyy-MM-dd HH-mm-ss";
 
     private static readonly DateTime MinDate = new(2006, 1, 1, 1, 1, 1, DateTimeKind.Local);
 
@@ -17,18 +20,47 @@ public class RenameProcessor
         _logger = logger;
     }
 
-    private Task RenameFilesAsync(string path)
+    public Task<int> CountFilesAsync(string path, bool recursive = false)
+    {
+        var files = Directory.GetFiles(path, "*.*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+        return Task.FromResult(files.Length);
+    }
+
+    public Task<List<OperationResult>> ProcessRenameFilesAsync(string rootPath, bool recursive = false, Action<string, OperationResult>? onRenameSuccess = null)
     {
         try
         {
-            // var subdirectories = Directory.GetDirectories(path);
+            var results = new List<OperationResult>();
+            var filePaths = Directory.GetFiles(rootPath, "*.*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
-            // foreach (var subDirectory in subdirectories)
-            // {
-            //     await RenameFilesAsync(subDirectory);
-            // }
+            for (var i = 1; i <= filePaths.Length; i++)
+            {
+                var filePath = filePaths[i - 1];
+                var result = RenameFile(filePath);
+                results.Add(result);
+                var fileName = new FileInfo(filePath).Name;
+                onRenameSuccess?.Invoke(fileName, result);
+            }
+            return Task.FromResult(results);
+        }
+        catch (Exception e)
+        {
+            //Console.WriteLine(e);
+            _logger.LogError(e, "Error when renaming files on path {Path}", rootPath);
+            throw;
+        }
+    }
 
-            var filePaths = Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly);
+    public async Task RenameAllAsync(string rootPath)
+    {
+        await RenameFilesAsync(rootPath, recursive: false);
+    }
+
+    private Task RenameFilesAsync(string path, bool recursive = false)
+    {
+        try
+        {
+            var filePaths = Directory.GetFiles(path, "*.*", recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
             for (var i = 1; i <= filePaths.Length; i++)
             {
@@ -45,89 +77,98 @@ public class RenameProcessor
         }
     }
 
-    public async Task RenameAllAsync(string rootPath)
-    {
-        await RenameFilesAsync(rootPath);
-    }
-
-    private void RenameFile(string filePath)
+    public OperationResult RenameFile(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
-            return;
+            return OperationResult.FailureResult("File path is empty");
         }
-
-        var fi = new FileInfo(filePath);
-        if (!fi.Exists)
+        try
         {
-            _logger.LogWarning("File {FileName} is not exist", fi.Name);
-            return;
-        }
-        if (fi.IsReadOnly)
-        {
-            _logger.LogWarning("File {FileName} is read only", fi.Name);
-            return;
-        }
-
-        if (fi.Name.Replace(fi.Extension, string.Empty).Contains("Copy"))
-        {
-            File.Delete(filePath);
-            return;
-        }
-
-        var fileName = fi.Name.ToLower();
-        DateTime? dateTime;
-
-        if (fileName.StartsWith("200") || fileName.StartsWith("201") || fileName.StartsWith("202"))
-        {
-            if (fileName.Contains("_") && fileName.Length <= 26)
+            var fi = new FileInfo(filePath);
+            if (!fi.Exists)
             {
-                var year = int.Parse(fi.Name.Substring(0, 4));
-                var month = int.Parse(fi.Name.Substring(4, 2));
-                var day = int.Parse(fi.Name.Substring(6, 2));
-                var hour = int.Parse(fi.Name.Substring(9, 2));
-                var minute = int.Parse(fi.Name.Substring(11, 2));
-                var second = int.Parse(fi.Name.Substring(13, 2));
+                _logger.LogWarning("File {FileName} is not exist", fi.Name);
+                return OperationResult.ExceptionResult(new FileNotFoundException($"File {fi.Name} not found"));
+            }
+            if (fi.IsReadOnly)
+            {
+                _logger.LogWarning("File {FileName} is read only", fi.Name);
+                return OperationResult.FailureResult($"File {fi.Name} is read only");
+            }
+
+            if (fi.Name.Replace(fi.Extension, string.Empty).Contains("Copy"))
+            {
+                File.Delete(filePath);
+                return OperationResult.FailureResult($"File {fi.Name} is copy file");
+            }
+
+            var fileName = fi.Name.ToLower();
+            DateTime? dateTime;
+
+            if (fileName.StartsWith("200") || fileName.StartsWith("201") || fileName.StartsWith("202"))
+            {
+                if (fileName.Contains("_") && fileName.Length <= 26)
+                {
+                    var year = int.Parse(fi.Name.Substring(0, 4));
+                    var month = int.Parse(fi.Name.Substring(4, 2));
+                    var day = int.Parse(fi.Name.Substring(6, 2));
+                    var hour = int.Parse(fi.Name.Substring(9, 2));
+                    var minute = int.Parse(fi.Name.Substring(11, 2));
+                    var second = int.Parse(fi.Name.Substring(13, 2));
+                    dateTime = new DateTime(year, month, day, hour, minute, second);
+                }
+                else if (fileName.Contains("-") && fileName.Contains(" "))
+                {
+                    _logger.LogWarning("File {FileName} already has desired format", fi.Name);
+                    return StringOperationResult.SuccessResult($"File {fi.Name} already has desired format");
+                }
+                else
+                    return OperationResult.FailureResult($"Invalid format of file {fi.Name}");
+            }
+            else if ((fileName.StartsWith("img_20") || fileName.StartsWith("vid_20")) && fileName.Length > 17)
+            {
+                var year = int.Parse(fi.Name.Substring(4, 4));
+                var month = int.Parse(fi.Name.Substring(8, 2));
+                var day = int.Parse(fi.Name.Substring(10, 2));
+                var hour = int.Parse(fi.Name.Substring(13, 2));
+                var minute = int.Parse(fi.Name.Substring(15, 2));
+                var second = int.Parse(fi.Name.Substring(17, 2));
+                dateTime = new DateTime(year, month, day, hour, minute, second);
+            }
+            else if (fileName.StartsWith("wp_20") && fileName.Length > 20)
+            {
+                var year = int.Parse(fi.Name.Substring(3, 4));
+                var month = int.Parse(fi.Name.Substring(7, 2));
+                var day = int.Parse(fi.Name.Substring(9, 2));
+                var hour = int.Parse(fi.Name.Substring(12, 2));
+                var minute = int.Parse(fi.Name.Substring(15, 2));
+                var second = int.Parse(fi.Name.Substring(18, 2));
                 dateTime = new DateTime(year, month, day, hour, minute, second);
             }
             else
-                return;
-        }
-        else if ((fileName.StartsWith("img_20") || fileName.StartsWith("vid_20")) && fileName.Length > 17)
-        {
-            var year = int.Parse(fi.Name.Substring(4, 4));
-            var month = int.Parse(fi.Name.Substring(8, 2));
-            var day = int.Parse(fi.Name.Substring(10, 2));
-            var hour = int.Parse(fi.Name.Substring(13, 2));
-            var minute = int.Parse(fi.Name.Substring(15, 2));
-            var second = int.Parse(fi.Name.Substring(17, 2));
-            dateTime = new DateTime(year, month, day, hour, minute, second);
-        }
-        else if (fileName.StartsWith("wp_20") && fileName.Length > 20)
-        {
-            var year = int.Parse(fi.Name.Substring(3, 4));
-            var month = int.Parse(fi.Name.Substring(7, 2));
-            var day = int.Parse(fi.Name.Substring(9, 2));
-            var hour = int.Parse(fi.Name.Substring(12, 2));
-            var minute = int.Parse(fi.Name.Substring(15, 2));
-            var second = int.Parse(fi.Name.Substring(18, 2));
-            dateTime = new DateTime(year, month, day, hour, minute, second);
-        }
-        else
-        {
-            dateTime = GetMetadataTime(fi);
-        }
+            {
+                dateTime = GetMetadataTime(fi);
+            }
 
-        if (!dateTime.HasValue)
-        {
-            return;
-        }
-        var newPath = GiveNewPath(fi, dateTime.Value);
-        File.Move(filePath, newPath);
-        ChangeFileDate(newPath, dateTime.Value);
+            if (!dateTime.HasValue)
+            {
+                return OperationResult.FailureResult($"Could not extract date and time form file {fi.Name}");
+            }
+            var newPath = GiveNewPath(fi, dateTime.Value);
+            File.Move(filePath, newPath);
+            ChangeFileDate(newPath, dateTime.Value);
 
-        var newName = Path.GetFileName(newPath);
-        _logger.LogInformation("File renamed from {OldName} to {NewName}", fi.Name, newName);
+            var newName = Path.GetFileName(newPath);
+            _logger.LogInformation("File renamed from {OldName} to {NewName}", fi.Name, newName);
+
+            return StringOperationResult.SuccessResult($"File renamed from {fi.Name} to {newName}");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error when renaming file on path {Path}", filePath);
+            return OperationResult.ExceptionResult(e);
+        }
     }
 
     private DateTime? GetMetadataTime(FileSystemInfo fi)
@@ -272,7 +313,7 @@ public class RenameProcessor
 
     private string GiveNewPath(FileSystemInfo fi, DateTime date)
     {
-        var newName = $"{date.Year}-{date.Month:D2}-{date.Day:D2} {date.Hour:D2}-{date.Minute:D2}-{date.Second:D2}{fi.Extension.ToLower()}";
+        var newName = $"{date.ToString(YandexDateTimeFormat, CultureInfo.InvariantCulture)}{fi.Extension.ToLower()}";
 
         var newPath = fi.FullName.Replace(fi.Name, newName);
         ChangeFileDate(fi.FullName, date);

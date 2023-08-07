@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Console", "Pho
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{CFE2FDDD-599F-47A8-AD80-5A3DC05BA524}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhotoRenamer.Core.Tests", "PhotoRenamer.Core.Tests\PhotoRenamer.Core.Tests.csproj", "{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Core.Tests", "PhotoRenamer.Core.Tests\PhotoRenamer.Core.Tests.csproj", "{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.WpfApp", "PhotoRenamer.WpfApp\PhotoRenamer.WpfApp.csproj", "{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,10 @@ Global
 		{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
