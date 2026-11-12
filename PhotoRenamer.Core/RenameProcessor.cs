@@ -146,6 +146,26 @@ public class RenameProcessor
                 var second = int.Parse(fi.Name.Substring(18, 2));
                 dateTime = new DateTime(year, month, day, hour, minute, second);
             }
+            else if (fileName.StartsWith("pxl_"))
+            {
+                var year = int.Parse(fi.Name.Substring(4, 4));
+                var month = int.Parse(fi.Name.Substring(8, 2));
+                var day = int.Parse(fi.Name.Substring(10, 2));
+                var hour = int.Parse(fi.Name.Substring(13, 2));
+                var minute = int.Parse(fi.Name.Substring(15, 2));
+                var second = int.Parse(fi.Name.Substring(17, 2));
+                dateTime = new DateTime(year, month, day, hour, minute, second);
+            }
+            else if (fileName.StartsWith(".trashed-") && fileName.Contains("pxl_"))
+            {
+                var year = int.Parse(fi.Name.Substring(24, 4));
+                var month = int.Parse(fi.Name.Substring(28, 2));
+                var day = int.Parse(fi.Name.Substring(30, 2));
+                var hour = int.Parse(fi.Name.Substring(33, 2));
+                var minute = int.Parse(fi.Name.Substring(35, 2));
+                var second = int.Parse(fi.Name.Substring(37, 2));
+                dateTime = new DateTime(year, month, day, hour, minute, second);
+            }
             else
             {
                 dateTime = GetMetadataTime(fi);
@@ -281,7 +301,7 @@ public class RenameProcessor
                     var hour = int.Parse(tag.Description.Substring(11, 2));
                     var minute = int.Parse(tag.Description.Substring(14, 2));
                     var second = int.Parse(tag.Description.Substring(17, 2));
-                    dateTime = new DateTime(year, month, day, hour, minute, second);
+                    dateTime = new(year, month, day, hour, minute, second);
                     if (dateTime.Month == 1 && dateTime.Day == 1 && dateTime.Hour == 0 && dateTime.Minute == 0 &&
                         dateTime.Second == 0 && dateTime.Millisecond == 0 || dates.Contains(dateTime))
                     {

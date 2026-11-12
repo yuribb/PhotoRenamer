@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32328.378
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhotoRenamerNet", "PhotoRenamerNet\PhotoRenamerNet.csproj", "{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Core", "PhotoRenamer.Core\PhotoRenamer.Core.csproj", "{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Console", "PhotoRenamer.Console\PhotoRenamer.Console.csproj", "{B58A3F15-FEBF-4939-B744-315D850D26F9}"
@@ -13,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{CFE2FDDD
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Core.Tests", "PhotoRenamer.Core.Tests\PhotoRenamer.Core.Tests.csproj", "{4183CBCA-DB37-4912-AA9E-7CB87D1C2B89}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.WpfApp", "PhotoRenamer.WpfApp\PhotoRenamer.WpfApp.csproj", "{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhotoRenamer.Desktop", "PhotoRenamer.Desktop\PhotoRenamer.Desktop.csproj", "{8FC602CB-EA69-4E76-98F1-73ECD3AC6D52}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F970FEC4-01C5-48CB-AC71-A94CF8FCD6C0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31BF0BDA-6305-4BE7-A137-1FEC12971C0E}.Release|Any CPU.ActiveCfg = Release|Any CPU

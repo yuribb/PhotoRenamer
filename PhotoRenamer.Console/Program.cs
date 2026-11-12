@@ -1,11 +1,12 @@
 ﻿
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PhotoRenamer.Core;
 
 using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().AddDebug());
 var logger = loggerFactory.CreateLogger<Program>();
 
-var path = string.Empty;
+var path = "d:\\Pictures\\iPhone\\";
 
 // Console.WriteLine("Path: ");
 // path = Console.ReadLine();

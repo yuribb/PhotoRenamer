@@ -22,17 +22,17 @@ public class OperationResult
 
     public static OperationResult SuccessResult()
     {
-        return new OperationResult();
+        return new();
     }
 
     public static OperationResult FailureResult(string message)
     {
-        return new OperationResult(message);
+        return new(message);
     }
 
     public static OperationResult ExceptionResult(Exception ex)
     {
-        return new OperationResult(ex);
+        return new(ex);
     }
 }
 
@@ -48,7 +48,7 @@ public class OperationResult<TResult> : OperationResult
 
     public static OperationResult<TResult> SuccessResult(TResult result)
     {
-        return new OperationResult<TResult>(result);
+        return new(result);
     }
 }
 
@@ -59,6 +59,6 @@ public class StringOperationResult : OperationResult<string>
     }
     public static new StringOperationResult SuccessResult(string result)
     {
-        return new StringOperationResult(result);
+        return new(result);
     }
 }
