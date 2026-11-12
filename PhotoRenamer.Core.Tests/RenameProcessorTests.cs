@@ -1,129 +1,116 @@
-using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+using System.Globalization;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace PhotoRenamer.Core.Tests;
 
-public class RenameProcessorTests
+public class RenameProcessorTests : IDisposable
 {
-    private const string OriginalImgFileName = "IMG_20230528_174703.jpg";
-    private const string OriginalMetadataFileName = "IMG_for_metadata.jpg";
-    private const string OriginalMovFileName = "IMG_2610.mov";
-    private const string DesiredImgFileName = "2023-05-28 17-47-03.jpg";
-    private const string DesiredMetadataFileName = "2023-08-01 03-11-32.jpg";
-    private const string DesiredMovFileName = "2023-05-15 20-37-45.mov";
+    private const string CameraFileName = "IMG_20230528_174703.jpg";
+    private const string RenamedFileName = "2023-05-28 17-47-03.jpg";
 
-    /// <summary>
-    /// Папка с оригинальным изображением, которая студия копирует при билде.
-    /// </summary>
-    private static readonly string OriginalImgPath = Path.Combine(Directory.GetCurrentDirectory(), "Content");
-    private static readonly DateTime DesiredImgDateTime = new(2023, 05, 28, 17, 47, 03, DateTimeKind.Local);
+    private readonly DirectoryInfo _folder = Directory.CreateTempSubdirectory("PhotoRenamer-");
+    private readonly RenameProcessor _processor = new(NullLogger.Instance);
 
-    private readonly ILogger _logger;
-
-    public RenameProcessorTests(ITestOutputHelper testOutput)
+    [Fact]
+    public async Task RenamesCameraFileAndUpdatesTimestamps()
     {
-        var loggerFactory = new LoggerFactory().AddXUnit(testOutput);
-        _logger = loggerFactory.CreateLogger<RenameProcessor>();
+        var original = CopySample(CameraFileName);
+
+        await _processor.RenameAllAsync(_folder.FullName);
+
+        var renamed = Path.Combine(_folder.FullName, RenamedFileName);
+        Assert.False(File.Exists(original));
+        Assert.True(File.Exists(renamed));
+        Assert.Equal(new DateTime(2023, 5, 28, 17, 47, 3), File.GetLastWriteTime(renamed));
     }
 
     [Fact]
-    public async Task RenameImgByNameSuccess()
+    public async Task KeepsCopiesAndResolvesNameCollisionsInTheirOwnFolder()
     {
-        var (fileDir, filePath) = CopyImage(OriginalImgFileName);
+        var subfolder = _folder.CreateSubdirectory("IMG_20230528_174703 - Copy.jpg");
+        var original = CopySample(CameraFileName, subfolder.FullName, subfolder.Name);
+        var existing = CopySample(CameraFileName, subfolder.FullName, RenamedFileName);
 
-        var processor = new RenameProcessor(_logger);
-        await processor.RenameAllAsync(fileDir);
+        await _processor.ProcessRenameFilesAsync(_folder.FullName, recursive: true);
 
-        Assert.False(File.Exists(filePath));
-        var newFilePath = Path.Combine(fileDir, DesiredImgFileName);
-        Assert.True(File.Exists(newFilePath));
+        Assert.False(File.Exists(original));
+        Assert.True(File.Exists(existing));
+        var renamedCopy = Path.Combine(subfolder.FullName, "2023-05-28 17-47-03_0001.jpg");
+        Assert.True(File.Exists(renamedCopy));
 
-        var createData = File.GetCreationTime(newFilePath);
-        Assert.Equal(DesiredImgDateTime, createData);
-
-        Cleanup(fileDir);
+        await _processor.ProcessRenameFilesAsync(_folder.FullName, recursive: true);
+        Assert.True(File.Exists(renamedCopy));
+        Assert.Equal(2, subfolder.GetFiles().Length);
     }
 
     [Fact]
-    public async Task RenameImgByNameDuplicateSuccess()
+    public void UsesModificationTimeForImageWithoutAnEmbeddedDate()
     {
-        var (fileDir, filePath) = CopyImage(OriginalImgFileName);
+        var original = CopySample("IMG_for_metadata.jpg");
+        File.SetLastWriteTime(original, new DateTime(2023, 8, 1, 3, 11, 32));
 
-        var processor = new RenameProcessor(_logger);
-        await processor.RenameAllAsync(fileDir);
+        var result = _processor.RenameFile(original);
 
-        Assert.False(File.Exists(filePath));
-        var newFilePath = Path.Combine(fileDir, DesiredImgFileName);
-        Assert.True(File.Exists(newFilePath));
-
-        // Create original file again
-        File.Copy(newFilePath, filePath);
-        await processor.RenameAllAsync(fileDir);
-
-        // assert processed file is alive
-        Assert.False(File.Exists(filePath));
-        Assert.True(File.Exists(newFilePath));
-
-        // assert conflicting file is created
-        var newFilePath2 = Path.Combine(fileDir, DesiredImgFileName.Replace(".jpg", "_0001.jpg"));
-        Assert.True(File.Exists(newFilePath2));
-
-        Directory.Delete(fileDir, true);
+        Assert.True(result.Success, result.FailureMessage);
+        Assert.False(File.Exists(original));
+        Assert.True(File.Exists(Path.Combine(_folder.FullName, "2023-08-01 03-11-32.jpg")));
     }
 
     [Fact]
-    public async Task RenameImgByMetadataSuccess()
+    public void PrefersEmbeddedMovieDateToEarlierFileModificationTime()
     {
-        var (fileDir, filePath) = CopyImage(OriginalMetadataFileName);
+        var original = CopySample("IMG_2610.mov");
+        File.SetLastWriteTime(original, new DateTime(2010, 5, 15, 12, 0, 0));
+        var creationTime = new DateTime(2023, 5, 15, 16, 37, 45, DateTimeKind.Utc).ToLocalTime();
+        var expected = creationTime.ToString("yyyy-MM-dd HH-mm-ss", CultureInfo.InvariantCulture) + ".mov";
 
-        var processor = new RenameProcessor(_logger);
-        await processor.RenameAllAsync(fileDir);
+        var result = _processor.RenameFile(original);
 
-        Assert.False(File.Exists(filePath));
-        var newFilePath = Path.Combine(fileDir, DesiredMetadataFileName);
-        Assert.True(File.Exists(newFilePath));
-
-        Cleanup(fileDir);
+        Assert.True(result.Success, result.FailureMessage);
+        Assert.False(File.Exists(original));
+        Assert.True(File.Exists(Path.Combine(_folder.FullName, expected)));
     }
 
     [Fact]
-    public async Task RenameMovByMetadataSuccess()
+    public void ParsesEmbeddedExifDateInNonGregorianCulture()
     {
-        var (fileDir, filePath) = CopyImage(OriginalMovFileName);
+        var original = Path.Combine(_folder.FullName, "photo.tiff");
+        using (var writer = new BinaryWriter(File.Create(original)))
+        {
+            // Little-endian TIFF with one directory entry holding the EXIF date.
+            writer.Write("II"u8);
+            writer.Write((ushort)42);
+            writer.Write(8u);
+            writer.Write((ushort)1);
+            writer.Write((ushort)306);
+            writer.Write((ushort)2);
+            writer.Write(20u);
+            writer.Write(26u);
+            writer.Write(0u);
+            writer.Write("2023:08:01 03:11:32\0"u8);
+        }
 
-        var processor = new RenameProcessor(_logger);
-        await processor.RenameAllAsync(fileDir);
-
-        Assert.False(File.Exists(filePath));
-        var newFilePath = Path.Combine(fileDir, DesiredMovFileName);
-        Assert.True(File.Exists(newFilePath));
-
-        Cleanup(fileDir);
+        var previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ar-SA");
+            var result = _processor.RenameFile(original);
+            Assert.True(result.Success, result.FailureMessage);
+            Assert.True(File.Exists(Path.Combine(_folder.FullName, "2023-08-01 03-11-32.tiff")));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
     }
 
-    /// <summary>
-    /// Получить копию папки с оригинальным изображением.
-    /// Так как тесты конфликтуют между собой, для каждого теста создаём свою подпапку.
-    /// </summary>
-    /// <returns>(DirectoryPath, FileName)</returns>
-    private (string, string) CopyImage(string imageName)
+    private string CopySample(string sampleName, string? folder = null, string? fileName = null)
     {
-        var originalFilePath = Path.Combine(OriginalImgPath, imageName);
-        Assert.True(File.Exists(originalFilePath));
-
-        var tempDirectory = Directory.CreateTempSubdirectory().FullName;
-
-        var newFilePath = Path.Combine(tempDirectory, imageName);
-        File.Copy(originalFilePath, newFilePath);
-
-        _logger.LogInformation("Create temp directory {Dir}", tempDirectory);
-
-        return (tempDirectory, newFilePath);
+        var source = Path.Combine(AppContext.BaseDirectory, "Content", sampleName);
+        var destination = Path.Combine(folder ?? _folder.FullName, fileName ?? sampleName);
+        File.Copy(source, destination);
+        return destination;
     }
 
-    private void Cleanup(string directory)
-    {
-        _logger.LogInformation("Delete temp directory {Dir}", directory);
-        Directory.Delete(directory, true);
-    }
+    public void Dispose() => _folder.Delete(recursive: true);
 }

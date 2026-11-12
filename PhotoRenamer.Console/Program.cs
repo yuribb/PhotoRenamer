@@ -1,41 +1,39 @@
-﻿
 using Microsoft.Extensions.Logging;
 using PhotoRenamer.Core;
 
 using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 var logger = loggerFactory.CreateLogger<Program>();
 
-var path = string.Empty;
-
-// Console.WriteLine("Path: ");
-// path = Console.ReadLine();
-if (path != string.Empty)
+if (args.Length > 1)
 {
-    // skip
-}
-else if (args.Any())
-{
-    path = args[0];
-}
-else
-{
-    path = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
-        ?? "/Users/iuriibanshchikov/Pictures/";
+    logger.LogError("Usage: PhotoRenamer.Console [folder]");
+    return 1;
 }
 
-if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+var path = args.Length == 1 ? args[0] : Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+if (!Directory.Exists(path))
 {
-    logger.LogError("Incorrect path \"{Path}\"", path);
-    Exit();
+    logger.LogError("Invalid folder: {Path}", path);
+    return 1;
 }
 
-logger.LogInformation("Start processing in directory \"{Path}\"", path);
+logger.LogInformation("Processing files in {Path}", path);
 var processor = new RenameProcessor(loggerFactory.CreateLogger<RenameProcessor>());
-await processor.RenameAllAsync(path);
-Exit();
 
-void Exit()
+try
 {
-    logger!.LogInformation("Done");
-    Console.ReadLine();
+    var results = await processor.ProcessRenameFilesAsync(path, onRenameSuccess: (fileName, result) =>
+    {
+        if (!result.Success)
+        {
+            logger.LogError("{FileName}: {Error}", fileName, result.FailureMessage ?? result.Exception?.Message);
+        }
+    });
+
+    return results.All(result => result.Success) ? 0 : 1;
+}
+catch (Exception)
+{
+    // The processor logs enumeration errors.
+    return 1;
 }
